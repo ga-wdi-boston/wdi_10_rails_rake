@@ -1,139 +1,206 @@
-## Action Mailer
+## Rake
+
+Is a build tool, like Make, written in Ruby and using Ruby as a build language. 
+
+* Let you define tasks
+* Tasks can depend on other tasks
+* Tasks are only run if needed.
+* Tasks are only run once.
+
+### Task
+* Create a file.
+* Populate a DB from a CSV, XML file.
+* Dump DB to a file.
+* Automation.
+	Something you do a lot.
+* See Rails for some great examples of Tasks.
 
 
-#### Generate a mailer Ruby class and View
+##### Basics
+
+First we will use Rake in an empty directory. _Just to see how we can use rake outside of Rails_.
+
+* Install rake.  _Can't imagine you don't already have it._
+	``gem install rake`` 
+* Create a directory 'RakeStuff' and cd to that directory.
+* Create a file 'Rakefile'. _Add the below code to that Rakefile._
+* Create a hello task using the __task__ keyword/method.
+
+	```
+	task :default do
+      puts "say something"
+	end
+	```
+* Run Task.  
+	``$ rake hello``
+* Show all tasks.  
+	``$ rake -T`` or ``$ rake -D`` or ``$ rake -P``
+
+* Show where a rake tasks is implemented.  
+	``rake -W``
+	
+* Create another hello task with another action and run it.  
+
+	```
+  	task :hello do
+      puts "Hello from my first rake task"
+   	end
+	```
+
+	When running ``$rake hello`` this just gives the hello task another action.
+	
+* Document the task.  
+	Use the __desc__ keyword/method.
+	Add 'desc "Some descriptive text" directly above the task.
+	
+	```
+	desc "Just say Hello"
+	task :hello do
+	  puts "Hello from my first rake task"
+	end
+	```
+	
+	``$rake hello``
+	``$rake -D hello``
+
+
+##### Namespaces
+
+To avoid name collisions with other rake tasks, probably defined in gems or libraries. Use the __namespace__ keywork/method.
+
+Yes, namespaces can be nested.
 
 ```
-rails g mailer user_mailer signup_confirmation
-```
-
-We now have a app/mailers/user_mailer.rb and two views in the app/views/user_mailer directory.
-
-#### Modify the app/mailers/user_mailer.rb class
-
-Our emails will be from _ga@example.com_. We will send the email to the user's email address and make the user available to the views by creating a instance variable @user.  
-
-```
-class UserMailer < ActionMailer::Base
-  # By default the email is from GA
-  default from: "ga@example.com"
-
-  # Subject can be set in your I18n file at config/locales/en.yml
-  # with the following lookup:
-  #
-  #   en.user_mailer.signup_confirmation.subject
-  #
-  def signup_confirmation(user)
-    # create an instance variable so that the view has access
-    # to the user.
-    @user = user
-
-    # send email to the user
-    mail to: user.email, subject: "Sign Up Confirmation"
+namespace :rack_demo do
+  namespace :simple do
+    task :default do
+      puts "say something"
+    end
+...
   end
 end
 ```
 
-#### Modify the app/views/user_email/signup_confirmation.text.erb file.
+##### Dependencies
+
+Rake is very good at running tasks that __depend__ on other tasks. 
+* Create a set of tasks to bake a cake, in rakelib/cake.rake.
 
 ```
-<%= @user.name %>
+namespace :cake do
 
-Thank you for signing up.
+  desc "Bake a Cake"
+  task :bake => [:mix_up, :go_to_store] do
+    puts "Cake is baked"
+  end
 
-```
+  task :mix_up => [:add_flower, :add_eggs] do
+    puts "Mix up ingredients"
+  end
 
-#### Modify the UsersController#create action.
+  task :add_flower => :get_flower do
+    puts "Adding flower"
+  end
 
-This will send the signup email.
+  task :add_eggs => :go_to_store do
+    puts "Adding Eggs"
+  end
 
- _Note: we are using a class method here but the Ruby class UserMailer only defines the instance method signup_confirmation. Rails maps the class method to the instance method._
+  task :get_flower => [:go_to_store] do
+  puts "Get Flower"
+  end
 
-```
-def create
-  ...
-  if @user.save
-
-        # Send sign up email
-        UserMailer.signup_confirmation(@user).deliver
-   ...
+  task :go_to_store do
+    puts "Go to Store"
+  end
 end
-...
+	
 ```
 
-#### Modify the config/environments/development.rb file.
+Run this bake task.   
+``$ rake cake:bake``  
 
-This will raise exceptions if sending the mail fails.
-
-```
-  # Do care if the mailer can't send.
-  config.action_mailer.raise_delivery_errors = true
+Notice how the output.   
 
 ```
+Go to Store
+Get Flower
+Adding flower
+Adding Eggs
+Mix up ingredients
+Cake is baked
+
+```
+
+This will create a dependency tree where the bake task depends on the mix_up task which depends on the add_flower and add_eggs tasks. 
+
+The add_flower task depends on the get_flower task which depends on the got_to_store task. 
+
+The add_eggs tasks just depends on the go_to_store task.
 
 
-#### Register a User. Which will send an email.
+_Notice how we do NOT invoke dependencies twice! Even when they are explicity added as a dependency._ 
+
+Rake knows not to include a dependency that has already been met.
 
 
-Go to the root URL, localhost:3000, and register a user. This will attempt to send an email.
+##### Running Unix commands
 
-__And it will FAIL.__
+We can invoke Unix commands from within a rake task.  
 
+Add this to rakelib/env.rb. 
 
-#### Configure the email setttings.
+```
+namespace :rake_demo do
 
-* Install and run the mailcatcher gem. See [mailcatcher site](http://mailcatcher.me/)
-	```
-	gem install mailcatcher
-	mailcatcher
-	```
-* Add email configuration to the config/environments/development.rb file.
+  task :show_env do
+    sh 'env'
+  end
+end
+```
 
-	```
-	...
-	# mailcatcher gem setup
-  	config.action_mailer.delivery_method = :smtp
-  	config.action_mailer.smtp_settings = { 
-    :address => "localhost", :port => 1025 }
-    ...
-	```
+``rake rake_demo:show_env``  
 
 
-* Register User at http://localhost:3000 with a valid email address.
+##### Passing arguments to Rake and environment.
 
-* Check that email was sent, http://127.0.0.1:1080/
+* Show Unix Environment Variables.  
+	``$ env``
+	
+	Notice the RUBY_VERSION. 
+* Access a Environment Variable in rake.
 
-
-
-##### (Alternative to the above) Google Email Settings 
- Always getting an error here? Maybe because of two factor authentication?
-
-* Add the dotenv gem to you Gemfile.  
-
-	```
-	gem 'dotenv-rails', :groups => [:development, :test]
-	```
-
-* bundle install
-* Add your GMAIL credentials to the .env file.
-
-	__MAKE SURE YOU DO NOT COMMIT THIS!!!!__   
-	.gitignore should have .env in it.
-
-* Add email configuration to the config/environments/development.rb file. 
+``$ export RAILS_ENV='development'``  
+``$ rake rake_demo:do_it``
 
 ```
 ... 
-config.action_mailer.delivery_method = :smtp
-  config.action_mailer.smtp_settings = {
-    address:              'smtp.gmail.com',
-    port:                 587,
-    domain:               'example.com',
-    user_name:            ENV["GMAIL_USERNAME"],
-    password:             ENV["GMAIL_PASSWORD"],
-    authentication:       'plain',
-    enable_starttls_auto: true  }
+ desc "Pass an argument to rake"
+  task :do_it do
+    puts "Doing it in with the rails environment set to #{ENV['RAILS_ENV']}"
   end
 ...
 ```
 
+Unset the environment variable and pass it directly as an argument.
+
+``$ unset RAILS_ENV``  
+``$ rake rake_demo:do_it RAILS_ENV='foo' ``
+
+
+### Rake in Rails.
+
+Move all these *.rake files to a Rails app. _This app_.
+
+Rails will look for all rake tasks in it's lib/tasks directory.
+
+Add this task to the env.rake file. 
+
+```
+ desc "Pass an argument to rake"
+  task :show_users => [:environment] do
+    names = User.all.map(&:name)
+    puts "User names are #{names.join(', ')}"
+  end
+
+```
