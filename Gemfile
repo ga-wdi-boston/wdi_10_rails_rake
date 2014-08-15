@@ -54,3 +54,5 @@ group :development do
   gem 'meta_request'
 
 end
+
+gem 'faker'

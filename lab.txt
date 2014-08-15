@@ -1,0 +1,9 @@
+* Create a whole bunch of Users using faker in the db/seeds.rb file.
+
+* Write a Rake task to export these Users to a CSV file, database.csv
+
+* Write a Rake task to clean your DB and import these Users from a CSV file, database.csv
+
+See: http://www.sitepoint.com/guide-ruby-csv-library-part/
+
+* Extra points for not using ActiveRecord User model.
